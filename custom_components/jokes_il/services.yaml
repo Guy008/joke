@@ -1,0 +1,7 @@
+refresh_jokes:
+  name: Refresh Jokes
+  description: Fetches a new set of Hebrew jokes from the API.
+
+next_joke:
+  name: Next Joke
+  description: Advances to the next joke in the queue.

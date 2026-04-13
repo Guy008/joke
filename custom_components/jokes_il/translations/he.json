@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "בדיחות מיידיות",
+        "description": "הוסף חיישן בדיחות ל-Home Assistant, מופעל על ידי bdihot.co.il. החיישן מציג את הבדיחה הנוכחית ותור בדיחות קרובות כ-attributes."
+      }
+    },
+    "abort": {
+      "already_configured": "בדיחות מיידיות כבר מוגדרות."
+    }
+  }
+}

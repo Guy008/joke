@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Instant Jokes",
+        "description": "Add a jokes sensor to Home Assistant, powered by bdihot.co.il. The sensor exposes the current joke and a queue of upcoming jokes as attributes."
+      }
+    },
+    "abort": {
+      "already_configured": "Instant Jokes is already configured."
+    }
+  },
+  "services": {
+    "refresh_jokes": {
+      "name": "Refresh Jokes",
+      "description": "Fetches a new set of jokes from the API immediately."
+    },
+    "next_joke": {
+      "name": "Next Joke",
+      "description": "Advances to the next joke in the queue."
+    }
+  }
+}
