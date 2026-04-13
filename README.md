@@ -246,18 +246,55 @@ mode: single
 
 #### Lovelace Dashboard Card
 
-Display the current joke on a dashboard. The Markdown card supports full formatting.
+Display the current joke on a dashboard. Tapping the card advances to the next joke.
 
 ```yaml
 type: markdown
-title: Joke
-content: >
-  **{{ state_attr('sensor.instant_jokes', 'title') }}**
+tap_action:
+  action: perform-action
+  perform_action: jokes_il.next_joke
+entities:
+  - sensor.instant_jokes
+content: |
+  {{ state_attr('sensor.instant_jokes', 'title') }}
 
   {{ states('sensor.instant_jokes') }}
+text_only: true
+grid_options:
+  columns: full
 ```
 
-To display all three queued jokes side by side, use an Entities card or a custom card with multiple template sensors.
+**Optional styling** — requires the [card-mod](https://github.com/thomasloven/lovelace-card-mod) HACS frontend card:
+
+```yaml
+type: markdown
+tap_action:
+  action: perform-action
+  perform_action: jokes_il.next_joke
+entities:
+  - sensor.instant_jokes
+content: |
+  {{ state_attr('sensor.instant_jokes', 'title') }}
+
+  {{ states('sensor.instant_jokes') }}
+text_only: true
+grid_options:
+  columns: full
+card_mod:
+  style: |
+    ha-card {
+      background: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      width: 100%;
+      font-size: 2rem !important;
+      font-weight: bold;
+      color: #03ff90 !important;
+      -webkit-text-stroke: 1px black;
+    }
+```
+
+> Tap the card to advance to the next joke. To display all three queued jokes, duplicate the card and replace `states(...)` with `state_attr('sensor.instant_jokes', 'joke_2')`.
 
 ---
 
@@ -504,16 +541,55 @@ mode: single
 
 #### כרטיס דשבורד (Lovelace)
 
-הצגת הבדיחה הנוכחית על הדשבורד עם כותרת מעוצבת.
+הצגת הבדיחה הנוכחית על הדשבורד. לחיצה על הכרטיס מתקדמת לבדיחה הבאה.
 
 ```yaml
 type: markdown
-title: בדיחה
-content: >
-  **{{ state_attr('sensor.instant_jokes', 'title') }}**
+tap_action:
+  action: perform-action
+  perform_action: jokes_il.next_joke
+entities:
+  - sensor.instant_jokes
+content: |
+  {{ state_attr('sensor.instant_jokes', 'title') }}
 
   {{ states('sensor.instant_jokes') }}
+text_only: true
+grid_options:
+  columns: full
 ```
+
+**עיצוב מתקדם** — דורש את כרטיס [card-mod](https://github.com/thomasloven/lovelace-card-mod) מ-HACS:
+
+```yaml
+type: markdown
+tap_action:
+  action: perform-action
+  perform_action: jokes_il.next_joke
+entities:
+  - sensor.instant_jokes
+content: |
+  {{ state_attr('sensor.instant_jokes', 'title') }}
+
+  {{ states('sensor.instant_jokes') }}
+text_only: true
+grid_options:
+  columns: full
+card_mod:
+  style: |
+    ha-card {
+      background: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      width: 100%;
+      font-size: 2rem !important;
+      font-weight: bold;
+      color: #03ff90 !important;
+      -webkit-text-stroke: 1px black;
+    }
+```
+
+> לחיצה על הכרטיס מתקדמת לבדיחה הבאה. להצגת שלוש בדיחות בו-זמנית, שכפל את הכרטיס והחלף `states(...)` ב-`state_attr('sensor.instant_jokes', 'joke_2')`.
 
 ---
 
