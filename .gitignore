@@ -4,3 +4,4 @@ __pycache__/
 .claude/
 claude/
 custom_components/const.py
+claude
