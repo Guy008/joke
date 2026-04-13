@@ -1,10 +1,11 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, SIGNAL_NEXT_JOKE
 from .coordinator import JokesCoordinator
 
 
@@ -32,6 +33,16 @@ class JokesSensor(CoordinatorEntity[JokesCoordinator], SensorEntity):
         self.hass = hass
         self._entry_id = entry.entry_id
         self._attr_unique_id = f"{DOMAIN}_sensor"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                SIGNAL_NEXT_JOKE,
+                self.async_write_ha_state,
+            )
+        )
 
     def _get_queue(self) -> list[dict]:
         data = self.hass.data[DOMAIN].get(self._entry_id, {})

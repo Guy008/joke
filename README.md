@@ -549,7 +549,8 @@ content: |
 | Role | Credit |
 |------|--------|
 | Concept & Direction | [Guy Levy](https://github.com/Guy008) |
-| Architecture & Implementation | [Claude Sonnet 4.6](https://www.anthropic.com/claude) by [Anthropic](https://www.anthropic.com) |
+| Architecture, Implementation & Primary Development | [Claude Sonnet 4.6](https://www.anthropic.com/claude) by [Anthropic](https://www.anthropic.com) |
+| Early Prototyping Assistance | [ChatGPT](https://chatgpt.com) by OpenAI |
 | Joke Content | [bdihot.co.il](https://www.bdihot.co.il) |
 
 ---

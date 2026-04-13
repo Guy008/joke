@@ -12,7 +12,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 JSON_URL = "http://www.bdihot.co.il/webmasters-json/"
-MAX_MEMORY = 20
+MAX_MEMORY = 100
 
 
 async def _fetch_category(session, url: str) -> str:

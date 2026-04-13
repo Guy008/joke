@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 *.zip
 .claude/
+claude/
+custom_components/const.py
