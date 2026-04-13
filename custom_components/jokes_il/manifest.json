@@ -1,7 +1,7 @@
 {
   "domain": "jokes_il",
   "name": "Instant Jokes",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "documentation": "https://github.com/Guy008/joke",
   "issue_tracker": "https://github.com/Guy008/joke/issues",
   "requirements": [],

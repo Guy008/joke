@@ -9,5 +9,12 @@
     "abort": {
       "already_configured": "בדיחות מיידיות כבר מוגדרות."
     }
+  },
+  "entity": {
+    "sensor": {
+      "jokes": {
+        "name": "בדיחות מיידיות"
+      }
+    }
   }
 }

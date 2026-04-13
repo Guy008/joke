@@ -25,7 +25,7 @@
 
 The integration maintains a queue of three jokes at all times. The current joke is the sensor state; the next two are available as attributes. Services allow advancing the queue or refreshing it on demand — making it ideal for voice assistants, automations, and dashboards.
 
-The UI language adapts to your Home Assistant language setting. Currently supported: **English**, **Hebrew**.
+The integration remembers the last **100 jokes** to avoid repetition. The UI language (integration name, entity name, setup screen) adapts automatically to your Home Assistant language setting. Currently supported: **English**, **Hebrew**.
 
 ---
 
@@ -271,7 +271,7 @@ content: |
 |---------|------------|
 | Integration not found after installation | Restart Home Assistant, then retry |
 | Sensor state is empty or `אין בדיחה` | The API did not respond. Call `jokes_il.refresh_jokes` to retry |
-| Jokes are repeating | The deduplication memory holds 20 entries. With very frequent use the pool may cycle. This is expected |
+| Jokes are repeating | The deduplication memory holds the last 100 jokes. With very frequent use the pool may cycle — this is expected |
 | Errors in logs | Go to **Settings → System → Logs** and filter for `jokes_il` |
 
 ---
@@ -292,7 +292,7 @@ All content is fetched from [bdihot.co.il](https://www.bdihot.co.il) via their p
 
 האינטגרציה מנהלת תור של שלוש בדיחות בכל עת. הבדיחה הנוכחית היא ה-state של החיישן; השתיים הבאות זמינות כ-attributes. שירותים מאפשרים להתקדם בתור או לרענן אותו לפי דרישה — מה שהופך את האינטגרציה למתאימה במיוחד לעוזרים קוליים, אוטומציות ודשבורדים.
 
-שפת הממשק מסתגלת לשפת ה-Home Assistant שלך. נתמכות כרגע: **עברית**, **אנגלית**.
+האינטגרציה זוכרת את **100 הבדיחות האחרונות** למניעת חזרות. שם האינטגרציה, שם החיישן ומסך ההגדרה מסתגלים אוטומטית לשפת ה-Home Assistant שלך. נתמכות כרגע: **עברית**, **אנגלית**.
 
 ---
 
@@ -533,7 +533,7 @@ content: |
 |-------|-------|
 | Integration לא מופיע לאחר ההתקנה | הפעל מחדש את Home Assistant ונסה שוב |
 | ה-state ריק או מציג `אין בדיחה` | ה-API לא הגיב. קרא ל-`jokes_il.refresh_jokes` לנסות שוב |
-| בדיחות חוזרות על עצמן | זיכרון הכפילויות מכיל 20 ערכים. בשימוש תכוף מאוד הבריכה עשויה להתחזר — זה צפוי |
+| בדיחות חוזרות על עצמן | זיכרון הכפילויות מכיל 100 בדיחות אחרונות. בשימוש תכוף מאוד הבריכה עשויה להתחזר — זה צפוי |
 | שגיאות ב-Logs | לך ל- **Settings → System → Logs** וסנן לפי `jokes_il` |
 
 ---

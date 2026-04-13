@@ -9,5 +9,12 @@
     "abort": {
       "already_configured": "Instant Jokes is already configured."
     }
+  },
+  "entity": {
+    "sensor": {
+      "jokes": {
+        "name": "Instant Jokes"
+      }
+    }
   }
 }

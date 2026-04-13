@@ -20,7 +20,8 @@ async def async_setup_entry(
 
 
 class JokesSensor(CoordinatorEntity[JokesCoordinator], SensorEntity):
-    _attr_name = "Instant Jokes"
+    _attr_has_entity_name = True
+    _attr_translation_key = "jokes"
     _attr_icon = "mdi:emoticon-happy-outline"
 
     def __init__(
