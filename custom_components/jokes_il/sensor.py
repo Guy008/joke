@@ -1,12 +1,13 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, SIGNAL_NEXT_JOKE
+from .const import DOMAIN
 from .coordinator import JokesCoordinator
+
+STATE_MAX_LENGTH = 255
 
 
 async def async_setup_entry(
@@ -14,9 +15,8 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator: JokesCoordinator = data["coordinator"]
-    async_add_entities([JokesSensor(hass, entry, coordinator)])
+    coordinator: JokesCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([JokesSensor(coordinator)])
 
 
 class JokesSensor(CoordinatorEntity[JokesCoordinator], SensorEntity):
@@ -24,50 +24,47 @@ class JokesSensor(CoordinatorEntity[JokesCoordinator], SensorEntity):
     _attr_translation_key = "jokes"
     _attr_icon = "mdi:emoticon-happy-outline"
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        entry: ConfigEntry,
-        coordinator: JokesCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: JokesCoordinator) -> None:
         super().__init__(coordinator)
-        self.hass = hass
-        self._entry_id = entry.entry_id
         self._attr_unique_id = f"{DOMAIN}_sensor"
 
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                SIGNAL_NEXT_JOKE,
-                self.async_write_ha_state,
-            )
-        )
-
-    def _get_queue(self) -> list[dict]:
-        data = self.hass.data[DOMAIN].get(self._entry_id, {})
-        queue: list[dict] = data.get("queue", [])
-        if not queue and self.coordinator.data:
-            queue.extend(self.coordinator.data)
-            data["queue"] = queue
-        return queue
+    @property
+    def _queue(self) -> list[dict]:
+        return self.coordinator.data or []
 
     @property
-    def state(self) -> str:
-        queue = self._get_queue()
-        return queue[0]["text"] if queue else "אין בדיחה"
+    def native_value(self) -> str | None:
+        queue = self._queue
+        if not queue:
+            return None
+        text = queue[0].get("text", "")
+        if not text:
+            return None
+        return text[:STATE_MAX_LENGTH]
 
     @property
     def extra_state_attributes(self) -> dict:
-        queue = self._get_queue()
-        return {
-            "title": queue[0].get("title", "") if queue else "",
-            "joke_2": queue[1]["text"] if len(queue) > 1 else "",
-            "title_2": queue[1].get("title", "") if len(queue) > 1 else "",
-            "joke_3": queue[2]["text"] if len(queue) > 2 else "",
-            "title_3": queue[2].get("title", "") if len(queue) > 2 else "",
-            "type": queue[0].get("type", "") if queue else "",
-            "safe": queue[0].get("safe", False) if queue else False,
-            "url": queue[0].get("url", "") if queue else "",
+        queue = self._queue
+        if not queue:
+            return {}
+        cur = queue[0]
+        attrs: dict = {
+            "title": cur.get("title", ""),
+            "text": cur.get("text", ""),
+            "type": cur.get("type", ""),
+            "safe": cur.get("safe", False),
+            "url": cur.get("url", ""),
         }
+        if len(queue) > 1:
+            attrs["joke_2"] = queue[1].get("text", "")
+            attrs["title_2"] = queue[1].get("title", "")
+        else:
+            attrs["joke_2"] = ""
+            attrs["title_2"] = ""
+        if len(queue) > 2:
+            attrs["joke_3"] = queue[2].get("text", "")
+            attrs["title_3"] = queue[2].get("title", "")
+        else:
+            attrs["joke_3"] = ""
+            attrs["title_3"] = ""
+        return attrs
