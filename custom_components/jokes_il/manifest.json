@@ -1,13 +1,13 @@
 {
   "domain": "jokes_il",
   "name": "Instant Jokes",
-  "version": "1.2.0",
+  "codeowners": ["@Guy008"],
+  "config_flow": true,
   "documentation": "https://github.com/Guy008/joke",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Guy008/joke/issues",
   "requirements": [],
-  "codeowners": ["@Guy008"],
-  "iot_class": "cloud_polling",
-  "config_flow": true,
   "single_config_entry": true,
-  "homeassistant": "2024.1.0"
+  "version": "1.2.1"
 }

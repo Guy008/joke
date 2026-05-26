@@ -16,5 +16,15 @@
         "name": "Instant Jokes"
       }
     }
+  },
+  "services": {
+    "refresh_jokes": {
+      "name": "Refresh Jokes",
+      "description": "Fetches a new set of jokes from the API immediately."
+    },
+    "next_joke": {
+      "name": "Next Joke",
+      "description": "Advances to the next joke in the queue."
+    }
   }
 }
