@@ -23,7 +23,7 @@
 
 **Instant Jokes** is a Home Assistant custom integration that fetches Hebrew jokes from [bdihot.co.il](https://www.bdihot.co.il) and exposes them as a sensor entity.
 
-The integration maintains a queue of three jokes at all times. The current joke is the sensor state; the next two are available as attributes. Services allow advancing the queue or refreshing it on demand — making it ideal for voice assistants, automations, and dashboards.
+The integration maintains a **rolling queue** of jokes. The current joke is the sensor state, the next two are exposed as attributes (`joke_2`, `joke_3`), and the queue is automatically replenished from the API when it runs low — so `next_joke` always has something fresh to show. Services let you advance the queue or pull more jokes on demand, making the integration ideal for voice assistants, automations, and dashboards.
 
 The integration remembers the last **100 jokes** to avoid repetition. The UI language (integration name, entity name, setup screen) adapts automatically to your Home Assistant language setting. Currently supported: **English**, **Hebrew**.
 
@@ -82,7 +82,8 @@ After setup, the following entity is created:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| state | `string` | Body text of the current joke |
+| state | `string` | Body text of the current joke, truncated to **255 chars** (Home Assistant's state-length limit). Use the `text` attribute below for the full body. |
+| `text` | `string` | Full, untruncated joke body. Recommended for dashboards and notifications. |
 | `title` | `string` | Title of the current joke |
 | `joke_2` | `string` | Body text of the next joke in queue |
 | `title_2` | `string` | Title of the next joke |
@@ -98,7 +99,7 @@ After setup, the following entity is created:
 
 #### `jokes_il.next_joke`
 
-Advances the queue. `joke_2` becomes the current joke, `joke_3` becomes `joke_2`.
+Advances the queue. `joke_2` becomes the current joke, `joke_3` becomes `joke_2`. If the queue drops below two jokes, fresh ones are pulled from the API automatically, so the sensor never gets stuck on stale content.
 
 ```yaml
 action: jokes_il.next_joke
@@ -106,13 +107,13 @@ action: jokes_il.next_joke
 
 #### `jokes_il.refresh_jokes`
 
-Discards the current queue and fetches a fresh batch of jokes from the API immediately, without waiting for the next scheduled update.
+Fetches new jokes from the API and **appends them to the end of the queue** — the currently displayed joke does not change. Call `next_joke` to advance to the new ones. Use this service when you want fresh content without waiting for the 6-hour scheduled refresh.
 
 ```yaml
 action: jokes_il.refresh_jokes
 ```
 
-> The integration auto-refreshes every **6 hours**. Use `refresh_jokes` only when you need an immediate update.
+> The integration auto-refreshes every **6 hours**. Manual `refresh_jokes` calls are only needed when you want immediate new content.
 
 ---
 
@@ -120,7 +121,7 @@ action: jokes_il.refresh_jokes
 
 1. Go to **Developer Tools → States**
 2. Search for `sensor.instant_jokes`
-3. Confirm the state contains joke text and the attributes include `title`, `joke_2`, `type`, and `safe`
+3. Confirm the state contains joke text and the attributes include `title`, `text`, `joke_2`, `type`, and `safe`
 
 ---
 
@@ -149,7 +150,7 @@ triggers:
       - בדיחה
 conditions: []
 actions:
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -173,7 +174,7 @@ actions:
   - action: notify.mobile_app_your_phone
     data:
       title: "{{ state_attr('sensor.instant_jokes', 'title') }}"
-      message: "{{ states('sensor.instant_jokes') }}"
+      message: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -202,7 +203,7 @@ conditions:
   - condition: template
     value_template: "{{ state_attr('sensor.instant_jokes', 'safe') == true }}"
 actions:
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -237,7 +238,7 @@ actions:
         - action: jokes_il.next_joke
         - delay:
             milliseconds: 200
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -246,22 +247,62 @@ mode: single
 
 #### Lovelace Dashboard Card
 
-Display the current joke on a dashboard. Tapping the card advances to the next joke.
+Display the current joke on a dashboard. **Tap** the card to advance to the next joke; **long-press** to pull fresh jokes from the API. Long jokes are read from the `text` attribute (the state itself is truncated to 255 chars).
+
+**Minimal version**
 
 ```yaml
 type: markdown
 tap_action:
-  action: perform-action
-  perform_action: jokes_il.next_joke
-entities:
-  - sensor.instant_jokes
+  action: call-service
+  service: jokes_il.next_joke
+hold_action:
+  action: call-service
+  service: jokes_il.refresh_jokes
+entity_id: sensor.instant_jokes
+content: |
+  **{{ state_attr('sensor.instant_jokes', 'title') }}**
+
+  {{ state_attr('sensor.instant_jokes', 'text') }}
+```
+
+**Styled version** (requires the [card-mod](https://github.com/thomasloven/lovelace-card-mod) frontend addon installed via HACS)
+
+The `pointer-events: none` rule on `ha-markdown` is important — without it the rendered text swallows the click before it can reach `ha-card`, and tap/hold actions never fire.
+
+```yaml
+type: markdown
+tap_action:
+  action: call-service
+  service: jokes_il.next_joke
+hold_action:
+  action: call-service
+  service: jokes_il.refresh_jokes
+entity_id: sensor.instant_jokes
 content: |
   {{ state_attr('sensor.instant_jokes', 'title') }}
 
-  {{ states('sensor.instant_jokes') }}
+  {{ state_attr('sensor.instant_jokes', 'text') }}
+text_only: true
+grid_options:
+  columns: full
+card_mod:
+  style: |
+    ha-card {
+      background: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      width: 100%;
+      font-size: 2rem !important;
+      font-weight: bold;
+      color: #03ff90 !important;
+      -webkit-text-stroke: 1px black;
+      cursor: pointer;
+    }
+    ha-markdown {
+      pointer-events: none;
+    }
 ```
-
-> Tap the card to advance to the next joke.
 
 ---
 
@@ -270,9 +311,11 @@ content: |
 | Symptom | Resolution |
 |---------|------------|
 | Integration not found after installation | Restart Home Assistant, then retry |
-| Sensor state is empty or `אין בדיחה` | The API did not respond. Call `jokes_il.refresh_jokes` to retry |
-| Jokes are repeating | The deduplication memory holds the last 100 jokes. With very frequent use the pool may cycle — this is expected |
-| Errors in logs | Go to **Settings → System → Logs** and filter for `jokes_il` |
+| Sensor state is `unknown` or empty | The API did not respond or the queue ran out. Call `jokes_il.refresh_jokes` to retry. |
+| The joke text appears cut off in templates | Long jokes are truncated to 255 chars in the state (HA limit). Use `state_attr('sensor.instant_jokes', 'text')` for the full body. |
+| Tapping the markdown dashboard card does nothing | The rendered markdown swallows clicks. Add `ha-markdown { pointer-events: none; }` via card-mod (see the styled example above). |
+| Jokes are repeating | The deduplication memory holds the last 100 jokes. With very frequent use the pool may cycle — this is expected. |
+| Errors in logs | Go to **Settings → System → Logs** and filter for `jokes_il`. |
 
 ---
 
@@ -290,7 +333,7 @@ All content is fetched from [bdihot.co.il](https://www.bdihot.co.il) via their p
 
 **Instant Jokes** היא אינטגרציה מותאמת אישית ל-Home Assistant שמושכת בדיחות עבריות מ-[bdihot.co.il](https://www.bdihot.co.il) ומציגה אותן כישות sensor.
 
-האינטגרציה מנהלת תור של שלוש בדיחות בכל עת. הבדיחה הנוכחית היא ה-state של החיישן; השתיים הבאות זמינות כ-attributes. שירותים מאפשרים להתקדם בתור או לרענן אותו לפי דרישה — מה שהופך את האינטגרציה למתאימה במיוחד לעוזרים קוליים, אוטומציות ודשבורדים.
+האינטגרציה מנהלת **תור מתחדש** של בדיחות. הבדיחה הנוכחית היא ה-state של החיישן, השתיים הבאות זמינות כ-attributes (`joke_2`, `joke_3`), והתור מתמלא אוטומטית מה-API כשהוא מתרוקן — כך ש-`next_joke` תמיד מציג משהו טרי. שירותים מאפשרים להתקדם בתור או למשוך עוד בדיחות לפי דרישה, מה שהופך את האינטגרציה למתאימה במיוחד לעוזרים קוליים, אוטומציות ודשבורדים.
 
 האינטגרציה זוכרת את **100 הבדיחות האחרונות** למניעת חזרות. שם האינטגרציה, שם החיישן ומסך ההגדרה מסתגלים אוטומטית לשפת ה-Home Assistant שלך. נתמכות כרגע: **עברית**, **אנגלית**.
 
@@ -349,7 +392,8 @@ config/
 
 | שדה | סוג | תיאור |
 |-----|-----|-------|
-| state | `string` | גוף הבדיחה הנוכחית |
+| state | `string` | גוף הבדיחה הנוכחית, חתוך ל-**255 תווים** (מגבלת אורך ה-state ב-Home Assistant). השתמש ב-attribute `text` למטה לטקסט המלא. |
+| `text` | `string` | גוף הבדיחה המלא, לא חתוך. מומלץ לדשבורדים ולהתראות. |
 | `title` | `string` | כותרת הבדיחה הנוכחית |
 | `joke_2` | `string` | גוף הבדיחה הבאה בתור |
 | `title_2` | `string` | כותרת הבדיחה הבאה |
@@ -365,7 +409,7 @@ config/
 
 #### `jokes_il.next_joke`
 
-מתקדם בתור. `joke_2` הופכת לנוכחית, `joke_3` הופכת ל-`joke_2`.
+מתקדם בתור. `joke_2` הופכת לנוכחית, `joke_3` הופכת ל-`joke_2`. אם התור יורד מתחת לשתי בדיחות, בדיחות חדשות נמשכות מה-API אוטומטית — כך שהחיישן אף פעם לא "נתקע" על תוכן ישן.
 
 ```yaml
 action: jokes_il.next_joke
@@ -373,13 +417,13 @@ action: jokes_il.next_joke
 
 #### `jokes_il.refresh_jokes`
 
-מוחק את התור הנוכחי ומוריד סט חדש של בדיחות מה-API מיד, ללא המתנה לרענון המתוזמן.
+מביא בדיחות חדשות מה-API **ומוסיף אותן לסוף התור** — הבדיחה המוצגת כרגע לא משתנה. קרא ל-`next_joke` כדי להגיע לחדשות. השתמש בשירות הזה כשרוצים תוכן טרי בלי לחכות לרענון המתוזמן.
 
 ```yaml
 action: jokes_il.refresh_jokes
 ```
 
-> האינטגרציה מתרעננת אוטומטית כל **6 שעות**. השתמש ב-`refresh_jokes` רק כשצריך עדכון מיידי.
+> האינטגרציה מתרעננת אוטומטית כל **6 שעות**. קריאות `refresh_jokes` ידניות נחוצות רק כשרוצים תוכן חדש מיידי.
 
 ---
 
@@ -387,7 +431,7 @@ action: jokes_il.refresh_jokes
 
 1. לך ל־ **Developer Tools → States**
 2. חפש `sensor.instant_jokes`
-3. וודא שה-state מכיל טקסט בדיחה וה-attributes כוללים `title`, `joke_2`, `type`, ו-`safe`
+3. וודא שה-state מכיל טקסט בדיחה וה-attributes כוללים `title`, `text`, `joke_2`, `type`, ו-`safe`
 
 ---
 
@@ -415,7 +459,7 @@ triggers:
       - joke
 conditions: []
 actions:
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -439,7 +483,7 @@ actions:
   - action: notify.mobile_app_your_phone
     data:
       title: "{{ state_attr('sensor.instant_jokes', 'title') }}"
-      message: "{{ states('sensor.instant_jokes') }}"
+      message: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -467,7 +511,7 @@ conditions:
   - condition: template
     value_template: "{{ state_attr('sensor.instant_jokes', 'safe') == true }}"
 actions:
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -499,7 +543,7 @@ actions:
         - action: jokes_il.next_joke
         - delay:
             milliseconds: 200
-  - set_conversation_response: "{{ states('sensor.instant_jokes') }}"
+  - set_conversation_response: "{{ state_attr('sensor.instant_jokes', 'text') }}"
   - action: jokes_il.next_joke
 mode: single
 ```
@@ -508,22 +552,62 @@ mode: single
 
 #### כרטיס דשבורד (Lovelace)
 
-הצגת הבדיחה הנוכחית על הדשבורד. לחיצה על הכרטיס מתקדמת לבדיחה הבאה.
+הצגת הבדיחה הנוכחית על הדשבורד. **לחיצה קצרה** מתקדמת לבדיחה הבאה; **לחיצה ארוכה** מושכת בדיחות חדשות מה-API. הטקסט נקרא מ-attribute `text` (ה-state עצמו חתוך ל-255 תווים).
+
+**גרסה מינימלית**
 
 ```yaml
 type: markdown
 tap_action:
-  action: perform-action
-  perform_action: jokes_il.next_joke
-entities:
-  - sensor.instant_jokes
+  action: call-service
+  service: jokes_il.next_joke
+hold_action:
+  action: call-service
+  service: jokes_il.refresh_jokes
+entity_id: sensor.instant_jokes
+content: |
+  **{{ state_attr('sensor.instant_jokes', 'title') }}**
+
+  {{ state_attr('sensor.instant_jokes', 'text') }}
+```
+
+**גרסה מעוצבת** (דורש את ה-frontend addon [card-mod](https://github.com/thomasloven/lovelace-card-mod), זמין דרך HACS)
+
+הכלל `pointer-events: none` על `ha-markdown` חשוב — בלעדיו הטקסט המעוצב "בולע" את הקליק לפני שהוא מגיע ל-`ha-card`, והפעולות לא נקראות.
+
+```yaml
+type: markdown
+tap_action:
+  action: call-service
+  service: jokes_il.next_joke
+hold_action:
+  action: call-service
+  service: jokes_il.refresh_jokes
+entity_id: sensor.instant_jokes
 content: |
   {{ state_attr('sensor.instant_jokes', 'title') }}
 
-  {{ states('sensor.instant_jokes') }}
+  {{ state_attr('sensor.instant_jokes', 'text') }}
+text_only: true
+grid_options:
+  columns: full
+card_mod:
+  style: |
+    ha-card {
+      background: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      width: 100%;
+      font-size: 2rem !important;
+      font-weight: bold;
+      color: #03ff90 !important;
+      -webkit-text-stroke: 1px black;
+      cursor: pointer;
+    }
+    ha-markdown {
+      pointer-events: none;
+    }
 ```
-
-> לחיצה על הכרטיס מתקדמת לבדיחה הבאה.
 
 ---
 
@@ -531,10 +615,12 @@ content: |
 
 | תסמין | פתרון |
 |-------|-------|
-| Integration לא מופיע לאחר ההתקנה | הפעל מחדש את Home Assistant ונסה שוב |
-| ה-state ריק או מציג `אין בדיחה` | ה-API לא הגיב. קרא ל-`jokes_il.refresh_jokes` לנסות שוב |
-| בדיחות חוזרות על עצמן | זיכרון הכפילויות מכיל 100 בדיחות אחרונות. בשימוש תכוף מאוד הבריכה עשויה להתחזר — זה צפוי |
-| שגיאות ב-Logs | לך ל- **Settings → System → Logs** וסנן לפי `jokes_il` |
+| Integration לא מופיע לאחר ההתקנה | הפעל מחדש את Home Assistant ונסה שוב. |
+| ה-state הוא `unknown` או ריק | ה-API לא הגיב או שהתור התרוקן. קרא ל-`jokes_il.refresh_jokes` לנסות שוב. |
+| טקסט הבדיחה נראה חתוך בטמפלייטים | בדיחות ארוכות חתוכות ל-255 תווים ב-state (מגבלת HA). השתמש ב-`state_attr('sensor.instant_jokes', 'text')` לטקסט המלא. |
+| לחיצה על כרטיס markdown בדשבורד לא עושה כלום | הטקסט המעוצב בולע את הקליק. הוסף `ha-markdown { pointer-events: none; }` דרך card-mod (ראה את הגרסה המעוצבת למעלה). |
+| בדיחות חוזרות על עצמן | זיכרון הכפילויות מכיל 100 בדיחות אחרונות. בשימוש תכוף מאוד הבריכה עשויה להתחזר — זה צפוי. |
+| שגיאות ב-Logs | לך ל- **Settings → System → Logs** וסנן לפי `jokes_il`. |
 
 ---
 
