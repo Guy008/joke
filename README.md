@@ -23,7 +23,7 @@
 
 **Instant Jokes** is a Home Assistant custom integration that fetches Hebrew jokes from [bdihot.co.il](https://www.bdihot.co.il) and exposes them as a sensor entity.
 
-The integration maintains a **rolling queue** of jokes. The current joke is the sensor state, the next two are exposed as attributes (`joke_2`, `joke_3`), and the queue is automatically replenished from the API when it runs low — so `next_joke` always has something fresh to show. Services let you advance the queue or pull more jokes on demand, making the integration ideal for voice assistants, automations, and dashboards.
+The integration maintains a **rolling queue** of jokes. The current joke's **title** is the sensor state, while its **full body** is exposed as the `text` attribute (the next two jokes are in `joke_2`/`joke_3`), and the queue is automatically replenished from the API when it runs low — so `next_joke` always has something fresh to show. Reading the body from the `text` attribute is deliberate: Home Assistant caps the state at 255 characters, so long jokes would be cut off before their punchline if read from the state. Services let you advance the queue or pull more jokes on demand, making the integration ideal for voice assistants, automations, and dashboards.
 
 The integration remembers the last **100 jokes** to avoid repetition. The UI language (integration name, entity name, setup screen) adapts automatically to your Home Assistant language setting. Currently supported: **English**, **Hebrew**.
 
@@ -82,9 +82,9 @@ After setup, the following entity is created:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| state | `string` | Body text of the current joke, truncated to **255 chars** (Home Assistant's state-length limit). Use the `text` attribute below for the full body. |
-| `text` | `string` | Full, untruncated joke body. Recommended for dashboards and notifications. |
-| `title` | `string` | Title of the current joke |
+| state | `string` | **Title** of the current joke — short, always complete, never truncated. For the joke body, read the `text` attribute below. |
+| `text` | `string` | Full, untruncated joke body. **This is what you read for the joke itself** — on dashboards, notifications, and TTS. |
+| `title` | `string` | Title of the current joke (same value as the state) |
 | `joke_2` | `string` | Body text of the next joke in queue |
 | `title_2` | `string` | Title of the next joke |
 | `joke_3` | `string` | Body text of the third joke in queue |
@@ -121,7 +121,7 @@ action: jokes_il.refresh_jokes
 
 1. Go to **Developer Tools → States**
 2. Search for `sensor.instant_jokes`
-3. Confirm the state contains joke text and the attributes include `title`, `text`, `joke_2`, `type`, and `safe`
+3. Confirm the state contains the joke title and the attributes include `text` (the full body), `joke_2`, `type`, and `safe`
 
 ---
 
@@ -247,7 +247,7 @@ mode: single
 
 #### Lovelace Dashboard Card
 
-Display the current joke on a dashboard. **Tap** the card to advance to the next joke; **long-press** to pull fresh jokes from the API. Long jokes are read from the `text` attribute (the state itself is truncated to 255 chars).
+Display the current joke on a dashboard. **Tap** the card to advance to the next joke; **long-press** to pull fresh jokes from the API. The joke body is read from the `text` attribute (the state holds only the short title).
 
 **Minimal version**
 
@@ -312,7 +312,7 @@ card_mod:
 |---------|------------|
 | Integration not found after installation | Restart Home Assistant, then retry |
 | Sensor state is `unknown` or empty | The API did not respond or the queue ran out. Call `jokes_il.refresh_jokes` to retry. |
-| The joke text appears cut off in templates | Long jokes are truncated to 255 chars in the state (HA limit). Use `state_attr('sensor.instant_jokes', 'text')` for the full body. |
+| The joke text appears cut off | The state holds only the short title — never read the joke body from the raw state. Use `state_attr('sensor.instant_jokes', 'text')` for the full body (Home Assistant caps the state at 255 chars, which would cut long jokes). |
 | Tapping the markdown dashboard card does nothing | The rendered markdown swallows clicks. Add `ha-markdown { pointer-events: none; }` via card-mod (see the styled example above). |
 | Jokes are repeating | The deduplication memory holds the last 100 jokes. With very frequent use the pool may cycle — this is expected. |
 | Errors in logs | Go to **Settings → System → Logs** and filter for `jokes_il`. |
@@ -333,7 +333,7 @@ All content is fetched from [bdihot.co.il](https://www.bdihot.co.il) via their p
 
 **Instant Jokes** היא אינטגרציה מותאמת אישית ל-Home Assistant שמושכת בדיחות עבריות מ-[bdihot.co.il](https://www.bdihot.co.il) ומציגה אותן כישות sensor.
 
-האינטגרציה מנהלת **תור מתחדש** של בדיחות. הבדיחה הנוכחית היא ה-state של החיישן, השתיים הבאות זמינות כ-attributes (`joke_2`, `joke_3`), והתור מתמלא אוטומטית מה-API כשהוא מתרוקן — כך ש-`next_joke` תמיד מציג משהו טרי. שירותים מאפשרים להתקדם בתור או למשוך עוד בדיחות לפי דרישה, מה שהופך את האינטגרציה למתאימה במיוחד לעוזרים קוליים, אוטומציות ודשבורדים.
+האינטגרציה מנהלת **תור מתחדש** של בדיחות. ה-state של החיישן הוא **כותרת** הבדיחה הנוכחית, ואילו **הגוף המלא** שלה זמין ב-attribute `text` (השתיים הבאות זמינות ב-`joke_2`/`joke_3`), והתור מתמלא אוטומטית מה-API כשהוא מתרוקן — כך ש-`next_joke` תמיד מציג משהו טרי. קריאת הגוף מ-attribute `text` היא מכוונת: Home Assistant מגביל את ה-state ל-255 תווים, כך שבדיחות ארוכות היו נחתכות לפני הפאנץ׳ אם היו נקראות מה-state. שירותים מאפשרים להתקדם בתור או למשוך עוד בדיחות לפי דרישה, מה שהופך את האינטגרציה למתאימה במיוחד לעוזרים קוליים, אוטומציות ודשבורדים.
 
 האינטגרציה זוכרת את **100 הבדיחות האחרונות** למניעת חזרות. שם האינטגרציה, שם החיישן ומסך ההגדרה מסתגלים אוטומטית לשפת ה-Home Assistant שלך. נתמכות כרגע: **עברית**, **אנגלית**.
 
@@ -392,9 +392,9 @@ config/
 
 | שדה | סוג | תיאור |
 |-----|-----|-------|
-| state | `string` | גוף הבדיחה הנוכחית, חתוך ל-**255 תווים** (מגבלת אורך ה-state ב-Home Assistant). השתמש ב-attribute `text` למטה לטקסט המלא. |
-| `text` | `string` | גוף הבדיחה המלא, לא חתוך. מומלץ לדשבורדים ולהתראות. |
-| `title` | `string` | כותרת הבדיחה הנוכחית |
+| state | `string` | **כותרת** הבדיחה הנוכחית — קצרה, תמיד שלמה, אף פעם לא נחתכת. לגוף הבדיחה קרא את attribute `text` למטה. |
+| `text` | `string` | גוף הבדיחה המלא, לא חתוך. **זה מה שקוראים בשביל הבדיחה עצמה** — בדשבורדים, התראות ו-TTS. |
+| `title` | `string` | כותרת הבדיחה הנוכחית (אותו ערך כמו ה-state) |
 | `joke_2` | `string` | גוף הבדיחה הבאה בתור |
 | `title_2` | `string` | כותרת הבדיחה הבאה |
 | `joke_3` | `string` | גוף הבדיחה השלישית בתור |
@@ -431,7 +431,7 @@ action: jokes_il.refresh_jokes
 
 1. לך ל־ **Developer Tools → States**
 2. חפש `sensor.instant_jokes`
-3. וודא שה-state מכיל טקסט בדיחה וה-attributes כוללים `title`, `text`, `joke_2`, `type`, ו-`safe`
+3. וודא שה-state מכיל את כותרת הבדיחה וה-attributes כוללים `text` (הגוף המלא), `joke_2`, `type`, ו-`safe`
 
 ---
 
@@ -552,7 +552,7 @@ mode: single
 
 #### כרטיס דשבורד (Lovelace)
 
-הצגת הבדיחה הנוכחית על הדשבורד. **לחיצה קצרה** מתקדמת לבדיחה הבאה; **לחיצה ארוכה** מושכת בדיחות חדשות מה-API. הטקסט נקרא מ-attribute `text` (ה-state עצמו חתוך ל-255 תווים).
+הצגת הבדיחה הנוכחית על הדשבורד. **לחיצה קצרה** מתקדמת לבדיחה הבאה; **לחיצה ארוכה** מושכת בדיחות חדשות מה-API. גוף הבדיחה נקרא מ-attribute `text` (ה-state מכיל רק את הכותרת הקצרה).
 
 **גרסה מינימלית**
 
@@ -617,7 +617,7 @@ card_mod:
 |-------|-------|
 | Integration לא מופיע לאחר ההתקנה | הפעל מחדש את Home Assistant ונסה שוב. |
 | ה-state הוא `unknown` או ריק | ה-API לא הגיב או שהתור התרוקן. קרא ל-`jokes_il.refresh_jokes` לנסות שוב. |
-| טקסט הבדיחה נראה חתוך בטמפלייטים | בדיחות ארוכות חתוכות ל-255 תווים ב-state (מגבלת HA). השתמש ב-`state_attr('sensor.instant_jokes', 'text')` לטקסט המלא. |
+| טקסט הבדיחה נראה חתוך | ה-state מכיל רק את הכותרת הקצרה — אסור לקרוא את גוף הבדיחה מה-state הגולמי. השתמש ב-`state_attr('sensor.instant_jokes', 'text')` לגוף המלא (Home Assistant מגביל את ה-state ל-255 תווים, מה שהיה חותך בדיחות ארוכות). |
 | לחיצה על כרטיס markdown בדשבורד לא עושה כלום | הטקסט המעוצב בולע את הקליק. הוסף `ha-markdown { pointer-events: none; }` דרך card-mod (ראה את הגרסה המעוצבת למעלה). |
 | בדיחות חוזרות על עצמן | זיכרון הכפילויות מכיל 100 בדיחות אחרונות. בשימוש תכוף מאוד הבריכה עשויה להתחזר — זה צפוי. |
 | שגיאות ב-Logs | לך ל- **Settings → System → Logs** וסנן לפי `jokes_il`. |

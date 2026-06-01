@@ -37,10 +37,14 @@ class JokesSensor(CoordinatorEntity[JokesCoordinator], SensorEntity):
         queue = self._queue
         if not queue:
             return None
-        text = queue[0].get("text", "")
-        if not text:
+        # The state holds the SHORT title, which is never truncated mid-word.
+        # The full joke body lives in the `text` attribute: Home Assistant caps
+        # the state at 255 chars, so a long joke placed here would be cut off
+        # before its punchline. Consumers should read the `text` attribute.
+        title = queue[0].get("title", "") or queue[0].get("text", "")
+        if not title:
             return None
-        return text[:STATE_MAX_LENGTH]
+        return title[:STATE_MAX_LENGTH]
 
     @property
     def extra_state_attributes(self) -> dict:
